@@ -71,7 +71,7 @@ def checkFileFormat(file):
     return returnVal
 
 def mobileCamRun():
-    mode = 'copy'
+    mode =  os.getenv('MOBILECAMOP')
     messenger = False
     if os.path.exists(mobileCamPath) == True:
         workFolder(mobileCamPath, mode, messenger)
@@ -79,21 +79,23 @@ def mobileCamRun():
         print('Pfad ' + mobileCamPath + ' nicht vorhanden') 
     
 def messengerRun():
-    mode = 'move'
+    mode = os.getenv('MESSENGEROP')
     messenger = True
     if os.path.exists(messengerPath) == True:
         workFolder(messengerPath, mode, messenger)
     else:
-        print('Pfad ' + messengerPath + ' nicht vorhanden')      
+        print('Pfad ' + messengerPath + ' nicht vorhanden')
+
 def cam1Run():
-    mode = 'copy'
+    mode = os.getenv('CAM1PATH')
     messenger = False
     if os.path.exists(cam1Path) == True:
         workFolder(cam1Path, mode, messenger)
     else:
-        print('Pfad ' + cam1Path + ' nicht vorhanden')      
+        print('Pfad ' + cam1Path + ' nicht vorhanden')
+
 def cam2Run():
-    mode = 'copy'
+    mode = os.getenv('CAM2PATH')
     messenger = False
     if os.path.exists(cam2Path) == True:
         workFolder(cam2Path, mode, messenger)
@@ -107,7 +109,7 @@ else:
     cam2Run()
 mobileCamRun()
 messengerRun()
-print('\n')
-enterPrompt = input("Zum Beenden beliebige Taste drücken...")
+print('\n Fertig! \n')
+enterPrompt = input("Zum Beenden Enter-Taste drücken...")
 
 
