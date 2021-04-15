@@ -23,5 +23,5 @@ There is one option you can choose for every path and this is wether you want to
 ['jpg', 'jpeg', 'mov', 'mp4', 'png']
 
 ### TODO
-- more generic configfile (probably .yaml) for endless folders and options like
+- more generic configfile (probably .yaml) for endless folders and options
 - english language / different language files
