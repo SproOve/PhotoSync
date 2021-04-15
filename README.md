@@ -25,3 +25,6 @@ There is one option you can choose for every path and this is wether you want to
 ### TODO
 - more generic configfile (probably .yaml) for endless folders and options
 - english language / different language files
+
+### Note
+The appicon is from Flaticon and if someone should find the link for it, let me know and i will contribute for it here, i couldnt find it on my own.
