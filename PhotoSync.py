@@ -1,19 +1,17 @@
-import os, shutil, send2trash, re, datetime, time
+import os, json, shutil, time
 
-from dotenv import load_dotenv
+json_path = os.path.join(os.getcwd()
+, 'config.json')
 
-# Create .env file path.
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-
-# Load file from the path.
-load_dotenv(dotenv_path)
+with open(json_path, 'r') as f:
+    config_dict = json.load(f)
 
 #path
-mobileCamPath = os.getenv('MOBILECAMPATH')
-messengerPath = os.getenv('MESSENGERPATH')
-cam1Path = os.getenv('CAM1PATH')
-cam2Path = os.getenv('CAM2PATH')
-destPath = os.getenv('DESTPATH')
+mobileCamPath = config_dict.__getitem__('mobilecamPath')
+messengerPath = config_dict.__getitem__('messengerPath')
+cam1Path = config_dict.__getitem__('cam1Path')
+cam2Path = config_dict.__getitem__('cam2Path')
+destPath = config_dict.__getitem__('destPath')
 
 if os.path.exists(destPath) == False:
     os.mkdir(destPath)
@@ -63,7 +61,7 @@ def workFolder(path, operation, messenger):
                 print(filepath + ' ist keine Mediendatei')
 
 def checkFileFormat(file):
-    validFileFormats = ['jpg', 'jpeg', 'mov', 'mp4', 'png']
+    validFileFormats = config_dict.__getitem__('validFileFormats')
     returnVal = False
     for fileFormat in validFileFormats:
         if file.lower().endswith(fileFormat):
@@ -71,7 +69,8 @@ def checkFileFormat(file):
     return returnVal
 
 def mobileCamRun():
-    mode =  os.getenv('MOBILECAMOP')
+    
+    mode =  config_dict.__getitem__('mobilecamOp')
     messenger = False
     if os.path.exists(mobileCamPath) == True:
         workFolder(mobileCamPath, mode, messenger)
@@ -79,7 +78,7 @@ def mobileCamRun():
         print('Pfad ' + mobileCamPath + ' nicht vorhanden') 
     
 def messengerRun():
-    mode = os.getenv('MESSENGEROP')
+    mode = config_dict.__getitem__('messengerOp')
     messenger = True
     if os.path.exists(messengerPath) == True:
         workFolder(messengerPath, mode, messenger)
@@ -87,7 +86,7 @@ def messengerRun():
         print('Pfad ' + messengerPath + ' nicht vorhanden')
 
 def cam1Run():
-    mode = os.getenv('CAM1PATH')
+    mode = config_dict.__getitem__('cam1Op')
     messenger = False
     if os.path.exists(cam1Path) == True:
         workFolder(cam1Path, mode, messenger)
@@ -95,7 +94,7 @@ def cam1Run():
         print('Pfad ' + cam1Path + ' nicht vorhanden')
 
 def cam2Run():
-    mode = os.getenv('CAM2PATH')
+    mode = config_dict.__getitem__('cam2Op')
     messenger = False
     if os.path.exists(cam2Path) == True:
         workFolder(cam2Path, mode, messenger)

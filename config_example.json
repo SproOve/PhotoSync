@@ -1,0 +1,16 @@
+{
+  "mobilecamPath": "C:\\Users\\MyUsername\\Pictures\\Fotos",
+  "mobilecamOp": "copy",
+
+  "messengerPath": "C:\\Users\\MyUsername\\Pictures\\Screens",
+  "messengerOp": "move",
+
+  "cam1Path": "D:\\DCIM\\",
+  "cam1Op": "copy",
+
+  "cam2Path": "F:\\DCIM\\",
+  "cam2Op": "copy",
+
+  "destPath": "C:\\Photos\\",
+  "validFileFormats": ["jpg", "jpeg", "mov", "mp4", "png"]
+}
