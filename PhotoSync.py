@@ -1,26 +1,72 @@
 import os, json, shutil, time
 
-json_path = os.path.join(os.getcwd()
-, 'config.json')
+import sys
+import subprocess
+from pathlib import Path
+from datetime import datetime
 
-with open(json_path, 'r') as f:
-    config_dict = json.load(f)
+with open("config.json", "r", encoding="utf-8") as f:
+    config = json.load(f)
 
-#path
-mobileCamPath = config_dict.__getitem__('mobilecamPath')
-messengerPath = config_dict.__getitem__('messengerPath')
-cam1Path = config_dict.__getitem__('cam1Path')
-cam2Path = config_dict.__getitem__('cam2Path')
-destPath = config_dict.__getitem__('destPath')
 
-if os.path.exists(destPath) == False:
-    os.mkdir(destPath)
+# Beispiel für Zugriff auf dest_path und valid_file_formats:
+dest_path = config["dest_path"]
+valid_formats = config["valid_file_formats"]
 
+if os.path.exists(dest_path) == False:
+    os.mkdir(dest_path)
 
 #Standard Texts
 txtRemoved = " wurde gelöscht"
 txtUntagged = " wurde ungetagged"
 txtSkipUndone = " wird übersprungen - Es sind noch nicht gelöschte Archive vorhanden"
+
+def get_embedded_adb_path():
+    if getattr(sys, 'frozen', False):
+        return os.path.join(sys._MEIPASS, 'adb')
+    else:
+        return os.path.join(os.path.dirname(__file__), 'adb')
+
+def run_adb_command(cmd):
+    adb_dir = get_embedded_adb_path()
+    adb_exe = os.path.join(adb_dir, 'adb.exe')
+    result = subprocess.run([adb_exe] + cmd, capture_output=True, text=True)
+    return result.stdout.strip()
+
+def ensure_folder_exists(path):
+    Path(path).mkdir(parents=True, exist_ok=True)
+
+def get_file_modtime(path, type):
+    if type == 'adb':
+        try:
+            # Android-Datei über ADB abfragen
+            output = run_adb_command([
+                'shell', 'stat', '-c', '%Y', f'"{path}"'
+            ])
+            timestamp = int(output.strip())
+            return time.gmtime(timestamp)
+        except Exception as e:
+            print(f"⚠️ Fehler beim Android-Dateizugriff: {e}")
+            return None
+    elif type == 'local':
+        try:
+            # Lokale Datei (Windows)
+            timestamp = os.path.getctime(path)
+            return time.gmtime(timestamp)
+        except Exception as e:
+            print(f"⚠️ Fehler beim lokalen Dateizugriff: {e}")
+            return None
+    
+# === HAUPTFUNKTIONEN ===
+
+def list_android_files(folder):
+    output = run_adb_command(['shell', 'ls', '-p', folder])
+    files = [line.strip() for line in output.splitlines() if line and not line.endswith('/')]
+    return files
+
+def show_devices():
+    print("🔌 Verbundene Geräte:")
+    print(run_adb_command(['devices']))
 
 def getQuartal(month):
     month = int(month)
@@ -33,82 +79,75 @@ def getQuartal(month):
     elif 9 < month <= 12:
         quartal = 'Q4'
     return quartal
+                
 
-
-def workFolder(path, operation, messenger):
-    for folders, subfolders, filenames in os.walk(path):
-        for file in filenames:
-            filepath = folders + '\\' + file
-            changetime = time.gmtime(os.path.getctime(filepath))
-            doSomething = checkFileFormat(filepath)
-            if doSomething == True:
-                if messenger == True:
-                    destinationPath = destPath + '\\' + str(changetime.tm_year) + '-messenger'
-                    # print(filepath, destinationPath)
-                else:
-                    quartal = getQuartal(changetime.tm_mon)
-                    destinationPath = destPath + '\\' + str(changetime.tm_year) + '-' + quartal
-                    # print(filepath, quartal, destinationPath)
-                if os.path.exists(destinationPath) == False:
-                    os.mkdir(destinationPath)
-                if operation == 'copy':
-                    print(filepath + ' wird kopiert')
-                    shutil.copy2(filepath, destinationPath)
-                elif operation == 'move':
-                    print(filepath + ' wird verschoben')
-                    shutil.move(filepath, destinationPath)
-            else:
-                print(filepath + ' ist keine Mediendatei')
-
-def checkFileFormat(file):
-    validFileFormats = config_dict.__getitem__('validFileFormats')
+def check_file_format(file):
+    validFileFormats = config["validFileFormats"]
     returnVal = False
     for fileFormat in validFileFormats:
         if file.lower().endswith(fileFormat):
             returnVal = True
     return returnVal
 
-def mobileCamRun():
-    
-    mode =  config_dict.__getitem__('mobilecamOp')
-    messenger = False
-    if os.path.exists(mobileCamPath) == True:
-        workFolder(mobileCamPath, mode, messenger)
+def pre_process_file(filepath, ob_type):
+    changetime = get_file_modtime(filepath, ob_type)
+    doSomething = check_file_format(filepath)
+    if doSomething == True:
+        quartal = getQuartal(changetime.tm_mon)
+        destinationPath = dest_path + '\\' + str(changetime.tm_year) + '-' + quartal
+        return destinationPath
     else:
-        print('Pfad ' + mobileCamPath + ' nicht vorhanden') 
-    
-def messengerRun():
-    mode = config_dict.__getitem__('messengerOp')
-    messenger = True
-    if os.path.exists(messengerPath) == True:
-        workFolder(messengerPath, mode, messenger)
-    else:
-        print('Pfad ' + messengerPath + ' nicht vorhanden')
+        print(filepath + ' ist keine Mediendatei')
+        return None
 
-def cam1Run():
-    mode = config_dict.__getitem__('cam1Op')
-    messenger = False
-    if os.path.exists(cam1Path) == True:
-        workFolder(cam1Path, mode, messenger)
-    else:
-        print('Pfad ' + cam1Path + ' nicht vorhanden')
+def process_file(filepath, dest_path, operation, type):
+    if os.path.exists(dest_path) == False:
+        os.mkdir(dest_path)
+    print(f"{'📤 Kopiere' if operation == "copy" else '✂️  Verschiebe'}: {filepath}")
+    if operation == 'copy':
+        if type == 'adb':            
+            run_adb_command(['pull', filepath, dest_path])
+        elif type == 'local':
+            shutil.copy2(filepath, dest_path)
+    elif operation == 'move':
+        if type == 'adb':            
+            run_adb_command(['pull', filepath, dest_path])
+            run_adb_command(['shell', 'rm', f'"{filepath}"'])
+        elif type == 'local':
+            shutil.move(filepath, dest_path) 
 
-def cam2Run():
-    mode = config_dict.__getitem__('cam2Op')
-    messenger = False
-    if os.path.exists(cam2Path) == True:
-        workFolder(cam2Path, mode, messenger)
-    else:
-        print('Pfad ' + cam2Path + ' nicht vorhanden')        
+def workFolder(path_obj):
+    path = path_obj["path"]
+    operation = path_obj["mode"]
+    if path_obj["type"] == 'adb':
+        print('ADB-Modus erkannt')
+        messenger = False
+        print(f"📁 Zielordner: {dest_path}")
+        ensure_folder_exists(dest_path)
 
-if cam1Path == cam2Path:
-    cam1Run()
-else:
-    cam1Run()
-    cam2Run()
-mobileCamRun()
-messengerRun()
-print('\n Fertig! \n')
+        files = list_android_files(path)
+        print(f"📄 Gefundene Dateien: {len(files)}")
+
+        for filename in files:
+            android_file = f"{path}/{filename}"
+            dest_path = pre_process_file(android_file, path_obj["type"])
+            if dest_path is not None:
+                process_file(android_file, dest_path, operation, path_obj["type"])
+    elif path_obj["type"] == 'local':
+        print('Lokaler Modus erkannt')
+        messenger = False
+        for folders, subfolders, filenames in os.walk(path):
+            for file in filenames:
+                filepath = folders + '\\' + file
+                dest_path = pre_process_file(filepath, path_obj["type"])
+                if dest_path is not None:
+                    process_file(filepath, dest_path, operation, path_obj["type"])
+
+
+show_devices()
+for path_obj in config["paths"]:
+    workFolder(path_obj)
+    print("✅ Vorgang abgeschlossen.")
 enterPrompt = input("Zum Beenden Enter-Taste drücken...")
 
 

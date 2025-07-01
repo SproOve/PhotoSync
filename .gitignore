@@ -4,3 +4,4 @@ dist/
 *.spec
 .env
 .env2
+config.json
